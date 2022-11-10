@@ -11,22 +11,31 @@ namespace SignalRBackEnd.Hubs
 
         private static int current_id = 0;
 
-        Dictionary<int, string> idBook = new Dictionary<int, string>();
+        private static Dictionary<int, string> id_key = new Dictionary<int, string>();
+        private static Dictionary<string, int> connection_id_key = new Dictionary<string, int>();
 
         public override Task OnConnectedAsync()
         {
 
-            idBook.Add(current_id, Context.ConnectionId);
-            Clients.Caller.SendAsync("ReciveId", current_id);
+            id_key.Add(current_id, Context.ConnectionId);
+            connection_id_key.Add(Context.ConnectionId, current_id);
+            Clients.Caller.SendAsync("ReceiveId", current_id);
             current_id++;
             Console.WriteLine("new client connectd");
             return base.OnConnectedAsync();
         }
-        public async Task sendMess(int id, string message)
+        public async Task sendMessage(int id, string message)
         {
             Console.WriteLine("sneding message");
 
-            await Clients.Clients(idBook[id]).SendAsync("ReceiveNewMessage", message);
+            foreach (var entry in id_key)
+            {
+                Console.WriteLine($"include: ${entry.Key}");
+            }
+
+            Console.WriteLine("after printing keys");
+
+            await Clients.Clients(id_key[id]).SendAsync("ReceiveNewMessage", connection_id_key[Context.ConnectionId], message);
 
         }   
     }
