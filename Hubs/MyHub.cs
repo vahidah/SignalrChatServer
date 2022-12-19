@@ -47,41 +47,49 @@ namespace SignalRBackEnd.Hubs
             return base.OnDisconnectedAsync(exception);
         }
 
-        public async Task sendMessage(int id, string message)
+        public async Task sendMessage(int id, string message, bool first_message)
         {
             Console.WriteLine("sending message");
 
-            if (clientInfos[id].online) { 
-            await Clients.Clients(id_key[id]).SendAsync("ReceiveNewMessage", connection_id_key[Context.ConnectionId], message);
-            }
-            else
+            int callerId = connection_id_key[Context.ConnectionId];
+
+            if (first_message)
             {
-
-
-                var notif_message = new Message()
-                {
-                    Notification = new Notification()
-                    {
-                        Title = $"new message from user {id}",
-                        Body = message
-
-                    },
-
-                    Token = clientInfos[id].firebase_token
-                };
-
-                Console.WriteLine($"fire_base token is: ${clientInfos[id].firebase_token}");
-
-                // Response is a message ID string.
-                Console.WriteLine("Successfully sent message: " + await FirebaseMessaging.DefaultInstance.SendAsync(notif_message));
-
+                await Clients.Clients(id_key[callerId]).SendAsync("receiveUserName", id, clientInfos[id].user_name);
             }
 
-        }
+                if (clientInfos[id].online)
+                {
+                    await Clients.Clients(id_key[id]).SendAsync("ReceiveNewMessage", callerId, message, clientInfos[callerId].user_name);
+                }
+                else
+                {
+
+
+                    var notif_message = new Message()
+                    {
+                        Notification = new Notification()
+                        {
+                            Title = $"new message from user {connection_id_key[Context.ConnectionId]}",
+                            Body = message
+
+                        },
+
+                        Token = clientInfos[id].firebase_token
+                    };
+
+                    Console.WriteLine($"fire_base token is: ${clientInfos[id].firebase_token}");
+
+                    // Response is a message ID string.
+                    Console.WriteLine("Successfully sent message: " + await FirebaseMessaging.DefaultInstance.SendAsync(notif_message));
+
+                }
+
+            }
 
         public async Task SendMessageToGroup(string groupName , int id, string message)
         {
-
+            Console.WriteLine("we are here");
             foreach(var entry in groupInfos[groupName])
             {
 
@@ -98,12 +106,13 @@ namespace SignalRBackEnd.Hubs
 
                         Token = clientInfos[entry].firebase_token
                     };
+                    Console.WriteLine("this client is offline");
                     Console.WriteLine("Successfully sent message: " + await FirebaseMessaging.DefaultInstance.SendAsync(notif_message));
                 }
 
             }
 
-            await Clients.Group(groupName).SendAsync("GroupMessage", groupName , id, message);
+            await Clients.Group(groupName).SendAsync("GroupMessage", groupName , id, message, clientInfos[id].user_name);
             
             Console.WriteLine($"message send to group: {message}");
             //await Clients.Group(groupName).SendAsync("Send", $"{Context.ConnectionId} has joined the group {groupName}.");
@@ -145,6 +154,12 @@ namespace SignalRBackEnd.Hubs
             Console.WriteLine("fire base token received");
             return Task.CompletedTask;
         }
+        public Task ReceiveUserName(string userName, int id)
+        {
+            clientInfos[id].user_name = userName;
+            Console.WriteLine($"userName received {userName}");
+            return Task.CompletedTask;
+        }
     }
 
 
@@ -153,6 +168,7 @@ namespace SignalRBackEnd.Hubs
         public string connection_id;
         public string firebase_token;
         public bool online;
+        public string user_name;
         public ClientInfo(string con_id, string fire_token)
         {
             connection_id = con_id;
