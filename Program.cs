@@ -21,6 +21,7 @@ namespace SignalRBackEnd
                 .ConfigureWebHostDefaults(webBuilder =>
                 {
                     webBuilder.UseStartup<Startup>();
+                    //webBuilder.UseUrls("", "http://167.235.239.170:5024");
                 });
     }
 }

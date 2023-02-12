@@ -28,6 +28,7 @@ namespace SignalRBackEnd
             {
                 Credential = GoogleCredential.FromFile("D:/projects/django/fcm/serviceAccountKey.json"),
             });
+            //
 
 
             //var message = new Message()
